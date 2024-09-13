@@ -1,0 +1,22 @@
+# Setup
+title:               IFT6758-A24 Blog
+tagline:             'A presentation blog of our data science project about NHL'
+description:         'This project includes 3 milestones that will all be presented in this blog. The first one covers data wrangling and exploratory analysis of the data.'
+url:                 ''
+baseurl:             ''
+paginate:            5
+permalink:           pretty
+
+# About/contact
+author:
+  name:              Philippe Schoeb
+  url:               https://github.com/PhilSchoeb
+  email:             philippe.schoeb@umontreal.ca
+
+# Gems
+plugins:
+  - jekyll-paginate
+
+# Custom vars
+version:             1.1.0
+google_analytics_id: #UA-XXXX-Y
