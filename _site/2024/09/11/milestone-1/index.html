@@ -94,13 +94,303 @@
         <div class="post">
   <h1 class="post-title">Milestone 1</h1>
   <span class="post-date">11 Sep 2024</span>
-  <h2 id="question-1">Question 1</h2>
+  <h2 id="acquisition-de-données">Acquisition de données</h2>
 
-<p>…content…</p>
+<h3 id="question-1-">Question 1 :</h3>
 
-<h2 id="question-2">Question 2</h2>
+<h4 id="description-du-paquet">Description du paquet</h4>
 
-<p>…content…</p>
+<p>Ce paquet est responsable de la récupération et du stockage des données provenant de l’API de la LNH.</p>
+
+<p>Il utilise la classe <code class="language-plaintext highlighter-rouge">ApiClient</code> pour récupérer les données et la classe <code class="language-plaintext highlighter-rouge">FileSystemCache</code> pour les stocker.</p>
+
+<p>Il stocke deux types de données : le <strong>cache</strong> et le <strong>dump</strong>.</p>
+
+<p>Lors de la récupération des données, le cache est utilisé pour stocker les données temporairement. Cela permet d’exécuter le processus de récupération en plusieurs étapes sans avoir à récupérer les mêmes données plusieurs fois. Le cache est stocké dans le dossier <code class="language-plaintext highlighter-rouge">ift6758/data/storage/cache</code>. Ce chemin peut être modifié avec la variable d’environnement <code class="language-plaintext highlighter-rouge">CACHE_PATH</code>.</p>
+
+<p>Une fois les données d’une saison récupérées, elles sont stockées dans le dump. À la fin du processus de récupération, il est conseillé de vider le cache pour libérer de l’espace. Le dump est stocké dans le dossier <code class="language-plaintext highlighter-rouge">ift6758/data/storage/dump</code>. Ce chemin peut être modifié avec la variable d’environnement <code class="language-plaintext highlighter-rouge">DUMP_PATH</code>.</p>
+
+<h4 id="utilisation--récupérer-les-données-depuis-lapi">Utilisation : Récupérer les données depuis l’API</h4>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">ift6758.data</span> <span class="kn">import</span> <span class="n">fetch_all_seasons_games_data</span>
+
+<span class="n">fetch_all_seasons_games_data</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>Cela récupérera tous les matchs depuis l’API de la LNH et les stockera dans <code class="language-plaintext highlighter-rouge">ift6758/data/storage/dump</code>.</p>
+
+<p>Si vous devez libérer de l’espace, il peut être nécessaire de vider le cache :</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">ift6758.data</span> <span class="kn">import</span> <span class="n">clear_cache</span>
+
+<span class="n">clear_cache</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>Vous pouvez également supprimer le dossier <code class="language-plaintext highlighter-rouge">ift6758/data/storage/cache</code>.</p>
+
+<h4 id="charger-les-données-aplaties-dans-un-dataframe">Charger les données aplaties dans un DataFrame</h4>
+
+<p>Cela chargera les données depuis le dump et les aplatis dans un DataFrame.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">ift6758.data</span> <span class="kn">import</span> <span class="n">load_events_dataframe</span>
+
+<span class="n">df_2020</span> <span class="o">=</span> <span class="n">load_events_dataframe</span><span class="p">(</span><span class="mi">2020</span><span class="p">)</span>
+<span class="n">df_all</span> <span class="o">=</span> <span class="n">load_events_dataframe</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h4 id="utilisation-avancée">Utilisation avancée</h4>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">ift6758.data</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ApiClient</span><span class="p">,</span> <span class="n">FileSystemCache</span><span class="p">,</span> <span class="n">DataTransformer</span><span class="p">,</span> <span class="n">GameType</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="n">cache_path</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span> <span class="s">"/storage/cache"</span>
+<span class="n">cache</span> <span class="o">=</span> <span class="n">FileSystemCache</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+
+<span class="n">dump_path</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span> <span class="s">"/storage/dump"</span>
+<span class="n">dump</span> <span class="o">=</span> <span class="n">FileSystemCache</span><span class="p">(</span><span class="n">dump_path</span><span class="p">)</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">ApiClient</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+
+<span class="n">data_transformer</span> <span class="o">=</span> <span class="n">DataTransformer</span><span class="p">()</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="p">.</span><span class="n">get_games_data</span><span class="p">(</span><span class="mi">2020</span><span class="p">,</span> <span class="p">[</span><span class="n">GameType</span><span class="p">.</span><span class="n">REGULAR</span><span class="p">,</span> <span class="n">GameType</span><span class="p">.</span><span class="n">PLAYOFF</span><span class="p">])</span>
+<span class="n">dump</span><span class="p">.</span><span class="nb">set</span><span class="p">(</span><span class="s">"2020"</span><span class="p">,</span> <span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">data_transformer</span><span class="p">.</span><span class="n">flatten_raw_data_as_dataframe</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">records</span> <span class="o">=</span> <span class="n">data_transformer</span><span class="p">.</span><span class="n">flatten_raw_data_as_records</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h2 id="outil-de-débogage-interactif">Outil de débogage interactif</h2>
+
+<h3 id="question-1--1">Question 1 :</h3>
+<h4 id="capture-décran">Capture d’écran</h4>
+<p><img width="616" alt="image" src="https://github.com/user-attachments/assets/fce0e89b-459c-41a7-a28d-96e1c3e2f8f2" /></p>
+
+<h4 id="code-de-loutil">Code de l’outil</h4>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">ipywidgets</span> <span class="k">as</span> <span class="n">widgets</span>
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">clear_output</span><span class="p">,</span> <span class="n">display</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.image</span> <span class="k">as</span> <span class="n">mpimg</span>
+</code></pre></div></div>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">data_folder</span> <span class="o">=</span> <span class="s">'../ift6758/data/storage/dump/'</span>
+<span class="n">rink_image_path</span> <span class="o">=</span> <span class="s">'../figures/nhl_rink.png'</span>
+
+<span class="n">rink_width</span> <span class="o">=</span> <span class="mi">800</span>
+<span class="n">rink_height</span> <span class="o">=</span> <span class="mi">400</span>
+
+<span class="n">rink_x_min</span><span class="p">,</span> <span class="n">rink_x_max</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span>
+<span class="n">rink_y_min</span><span class="p">,</span> <span class="n">rink_y_max</span> <span class="o">=</span> <span class="o">-</span><span class="mf">42.5</span><span class="p">,</span> <span class="mf">42.5</span>
+</code></pre></div></div>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">load_season_data</span><span class="p">(</span><span class="n">season</span><span class="p">):</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="p">.</span><span class="n">path</span><span class="p">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_folder</span><span class="p">,</span> <span class="sa">f</span><span class="s">"</span><span class="si">{</span><span class="n">season</span><span class="si">}</span><span class="s">.json"</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s">'r'</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="p">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+<span class="k">def</span> <span class="nf">filter_games_by_type</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">season_type</span><span class="p">):</span>
+    <span class="s">"""
+    Filters the game data by regular season ('02') or playoffs ('03').
+    It checks the 5th and 6th characters of the game ID to determine the game type.
+    """</span>
+    <span class="n">filtered_games</span> <span class="o">=</span> <span class="p">[</span><span class="n">game</span> <span class="k">for</span> <span class="n">game</span> <span class="ow">in</span> <span class="n">data</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">game</span><span class="p">[</span><span class="s">'id'</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="n">season_type</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">filtered_games</span>
+
+<span class="k">def</span> <span class="nf">display_event_info</span><span class="p">(</span><span class="n">game_data</span><span class="p">,</span> <span class="n">event_index</span><span class="p">):</span>
+    <span class="n">event_data</span> <span class="o">=</span> <span class="n">game_data</span><span class="p">[</span><span class="s">'plays'</span><span class="p">][</span><span class="n">event_index</span><span class="p">]</span>
+    <span class="n">event_id</span> <span class="o">=</span> <span class="n">event_data</span><span class="p">[</span><span class="s">'eventId'</span><span class="p">]</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="n">event_data</span><span class="p">[</span><span class="s">'periodDescriptor'</span><span class="p">][</span><span class="s">'number'</span><span class="p">]</span>
+    <span class="n">time_in_period</span> <span class="o">=</span> <span class="n">event_data</span><span class="p">[</span><span class="s">'timeInPeriod'</span><span class="p">]</span>
+    <span class="n">event_type</span> <span class="o">=</span> <span class="n">event_data</span><span class="p">[</span><span class="s">'typeDescKey'</span><span class="p">]</span>
+    
+    <span class="k">with</span> <span class="n">event_output</span><span class="p">:</span>
+        <span class="n">clear_output</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Event ID: </span><span class="si">{</span><span class="n">event_id</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Period: </span><span class="si">{</span><span class="n">period</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Time in Period: </span><span class="si">{</span><span class="n">time_in_period</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Event Type: </span><span class="si">{</span><span class="n">event_type</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="s">'details'</span> <span class="ow">in</span> <span class="n">event_data</span><span class="p">:</span>
+            <span class="n">details</span> <span class="o">=</span> <span class="n">event_data</span><span class="p">[</span><span class="s">'details'</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s">'xCoord'</span> <span class="ow">in</span> <span class="n">details</span> <span class="ow">and</span> <span class="s">'yCoord'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Event Position: x=</span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'xCoord'</span><span class="p">]</span><span class="si">}</span><span class="s">, y=</span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'yCoord'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+                <span class="n">transformed_x</span><span class="p">,</span> <span class="n">transformed_y</span> <span class="o">=</span> <span class="n">transform_coordinates</span><span class="p">(</span><span class="n">details</span><span class="p">[</span><span class="s">'xCoord'</span><span class="p">],</span> <span class="n">details</span><span class="p">[</span><span class="s">'yCoord'</span><span class="p">])</span>
+                <span class="n">display_rink_image</span><span class="p">(</span><span class="n">transformed_x</span><span class="p">,</span> <span class="n">transformed_y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">display_rink_image</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="s">'reason'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Reason: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'reason'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'winningPlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Winning Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'winningPlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'losingPlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Losing Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'losingPlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'shootingPlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Shooting Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'shootingPlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'goalieInNetId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Goalie in Net ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'goalieInNetId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'hittingPlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Hitting Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'hittingPlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'hitteePlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Hittee Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'hitteePlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">'blockingPlayerId'</span> <span class="ow">in</span> <span class="n">details</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Blocking Player ID: </span><span class="si">{</span><span class="n">details</span><span class="p">[</span><span class="s">'blockingPlayerId'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">display_rink_image</span><span class="p">()</span>
+
+        <span class="k">print</span><span class="p">(</span><span class="s">"</span><span class="se">\n</span><span class="s">JSON:"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">json</span><span class="p">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">event_data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span> 
+
+<span class="k">def</span> <span class="nf">display_game_info</span><span class="p">(</span><span class="n">season</span><span class="p">,</span> <span class="n">game_index</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load_season_data</span><span class="p">(</span><span class="n">season</span><span class="p">)</span>
+    <span class="n">season_type</span> <span class="o">=</span> <span class="n">season_type_selector</span><span class="p">.</span><span class="n">value</span>
+    <span class="n">filtered_game_data</span> <span class="o">=</span> <span class="n">filter_games_by_type</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">season_type</span><span class="p">)</span>
+    
+    <span class="n">game_data</span> <span class="o">=</span> <span class="n">filtered_game_data</span><span class="p">[</span><span class="n">game_index</span><span class="p">]</span>
+    
+    <span class="k">with</span> <span class="n">match_output</span><span class="p">:</span>
+        <span class="n">clear_output</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Game ID: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'id'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Date: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'gameDate'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Home Team: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'homeTeam'</span><span class="p">][</span><span class="s">'name'</span><span class="p">][</span><span class="s">'default'</span><span class="p">]</span><span class="si">}</span><span class="s"> (Score: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'homeTeam'</span><span class="p">][</span><span class="s">'score'</span><span class="p">]</span><span class="si">}</span><span class="s">)"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Away Team: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'awayTeam'</span><span class="p">][</span><span class="s">'name'</span><span class="p">][</span><span class="s">'default'</span><span class="p">]</span><span class="si">}</span><span class="s"> (Score: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'awayTeam'</span><span class="p">][</span><span class="s">'score'</span><span class="p">]</span><span class="si">}</span><span class="s">)"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Venue: </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'venue'</span><span class="p">][</span><span class="s">'default'</span><span class="p">]</span><span class="si">}</span><span class="s"> - </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'venueLocation'</span><span class="p">][</span><span class="s">'default'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="sa">f</span><span class="s">"Start Time (UTC): </span><span class="si">{</span><span class="n">game_data</span><span class="p">[</span><span class="s">'startTimeUTC'</span><span class="p">]</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+    
+    <span class="n">event_slider</span><span class="p">.</span><span class="nb">max</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">game_data</span><span class="p">[</span><span class="s">'plays'</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">event_slider</span><span class="p">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">def</span> <span class="nf">update_event_output</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">display_event_info</span><span class="p">(</span><span class="n">game_data</span><span class="p">,</span> <span class="n">event_slider</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+    
+    <span class="n">event_slider</span><span class="p">.</span><span class="n">observe</span><span class="p">(</span><span class="n">update_event_output</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">'value'</span><span class="p">)</span>
+    
+    <span class="k">with</span> <span class="n">slider_output</span><span class="p">:</span>
+        <span class="n">clear_output</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">display</span><span class="p">(</span><span class="n">event_slider</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">transform_coordinates</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">transformed_x</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">rink_x_min</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">rink_x_max</span> <span class="o">-</span> <span class="n">rink_x_min</span><span class="p">))</span> <span class="o">*</span> <span class="n">rink_width</span>
+    <span class="n">transformed_y</span> <span class="o">=</span> <span class="n">rink_height</span> <span class="o">-</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">rink_y_min</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">rink_y_max</span> <span class="o">-</span> <span class="n">rink_y_min</span><span class="p">)</span> <span class="o">*</span> <span class="n">rink_height</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">transformed_x</span><span class="p">,</span> <span class="n">transformed_y</span>
+
+<span class="k">def</span> <span class="nf">display_rink_image</span><span class="p">(</span><span class="n">xCoord</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">yCoord</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="p">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="n">img</span> <span class="o">=</span> <span class="n">mpimg</span><span class="p">.</span><span class="n">imread</span><span class="p">(</span><span class="n">rink_image_path</span><span class="p">)</span>
+    
+    <span class="n">ax</span><span class="p">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">rink_width</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">rink_height</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">xCoord</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">yCoord</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">ax</span><span class="p">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xCoord</span><span class="p">,</span> <span class="n">yCoord</span><span class="p">,</span> <span class="s">'go'</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">"Event Position"</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="n">ax</span><span class="p">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rink_width</span><span class="p">)</span>  
+    <span class="n">ax</span><span class="p">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">rink_height</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> 
+
+    <span class="n">ax</span><span class="p">.</span><span class="n">axis</span><span class="p">(</span><span class="s">'off'</span><span class="p">)</span>
+    <span class="n">plt</span><span class="p">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="n">season_selector</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">Dropdown</span><span class="p">(</span>
+    <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="mi">2016</span><span class="p">,</span> <span class="mi">2017</span><span class="p">,</span> <span class="mi">2018</span><span class="p">,</span> <span class="mi">2019</span><span class="p">,</span> <span class="mi">2020</span><span class="p">,</span> <span class="mi">2021</span><span class="p">,</span> <span class="mi">2022</span><span class="p">,</span> <span class="mi">2023</span><span class="p">],</span> 
+    <span class="n">description</span><span class="o">=</span><span class="s">'Saison:'</span>
+<span class="p">)</span>
+
+<span class="n">season_type_selector</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">Dropdown</span><span class="p">(</span>
+    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s">'All'</span><span class="p">:</span> <span class="s">'all'</span><span class="p">,</span> <span class="s">'Regular Season'</span><span class="p">:</span> <span class="s">'02'</span><span class="p">,</span> <span class="s">'Playoffs'</span><span class="p">:</span> <span class="s">'03'</span><span class="p">},</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">'Season Type:'</span>
+<span class="p">)</span>
+
+<span class="n">game_slider</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">IntSlider</span><span class="p">(</span>
+    <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="nb">max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">'Match:'</span>
+<span class="p">)</span>
+
+<span class="n">event_slider</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">IntSlider</span><span class="p">(</span>
+    <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="nb">max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">'Event:'</span>
+<span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">update_game_slider</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">season</span> <span class="o">=</span> <span class="n">season_selector</span><span class="p">.</span><span class="n">value</span>
+    <span class="n">season_type</span> <span class="o">=</span> <span class="n">season_type_selector</span><span class="p">.</span><span class="n">value</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load_season_data</span><span class="p">(</span><span class="n">season</span><span class="p">)</span>
+    
+    <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">filter_games_by_type</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">season_type</span><span class="p">)</span> <span class="k">if</span> <span class="n">season_type</span> <span class="o">!=</span> <span class="s">'all'</span> <span class="k">else</span> <span class="n">data</span>
+    <span class="n">game_slider</span><span class="p">.</span><span class="nb">max</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">game_slider</span><span class="p">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">update_game_output</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">display_game_info</span><span class="p">(</span><span class="n">season_selector</span><span class="p">.</span><span class="n">value</span><span class="p">,</span> <span class="n">game_slider</span><span class="p">.</span><span class="n">value</span><span class="p">)</span>
+
+<span class="n">season_selector</span><span class="p">.</span><span class="n">observe</span><span class="p">(</span><span class="n">update_game_slider</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">'value'</span><span class="p">)</span>
+<span class="n">season_type_selector</span><span class="p">.</span><span class="n">observe</span><span class="p">(</span><span class="n">update_game_slider</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">'value'</span><span class="p">)</span>
+<span class="n">game_slider</span><span class="p">.</span><span class="n">observe</span><span class="p">(</span><span class="n">update_game_output</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="s">'value'</span><span class="p">)</span>
+
+<span class="n">match_output</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">Output</span><span class="p">()</span>
+<span class="n">slider_output</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">Output</span><span class="p">()</span>
+<span class="n">event_output</span> <span class="o">=</span> <span class="n">widgets</span><span class="p">.</span><span class="n">Output</span><span class="p">()</span>
+</code></pre></div></div>
+
+<h2 id="nettoyer-les-données">Nettoyer les données</h2>
+
+<h3 id="question-1--2">Question 1 :</h3>
+
+<p>Capture d’écran de notre Dataframe</p>
+
+<h3 id="question-2-">Question 2 :</h3>
+
+<p>Si le champ de “force” n’existait pas pour les tirs, une manière de le savoir serait de prendre en compte les événements de type “penality”. En effet, en regardant les temps auquels les pénalités sont prises et leurs durées, on peut facilement déduire si un tir a été effectué à force égale, en infériorité ou en supériorité numérique. Une information qui nous est importante pour faire la déduction et le temps auquel le tir à été fait et nous l’avons.</p>
+
+<h3 id="question-3-">Question 3 :</h3>
+
+<p>Caractéristique 1 : Rebond<br />
+On pourrait qualifier de rebond tout tir qui est effectué moins de 2 secondes après un premier tir. Évedemment les deux tirs doivent être sur le même gardien. Les rebonds sont souvent des tirs qui ont plus de chances de rentrer dans le but donc il est intéressant de les analyser.</p>
+
+<p>Caractéristique 2 : Tir après mise au jeu<br />
+On pourrait qualifier de tir après mise au jeu tout tir qui est effectué moins de 3 secondes après une mise au jeu. Ainsi, il serait possible d’analyser quels sont les éléments nécéssaires pour marquer un but directement après la mise au jeu.</p>
+
+<p>Caractéristique 3 : Tir de pénalité<br />
+On pourrait qualifier de tir de pénalité tout tir qui est effectué avec un “situationCode” de 1010 ou de 0101 et si la période actuelle est inférieure à 5. En effet, le situation code indique que c’est seulement un tireur contre un gardien sur la glace et la période inférieure à 5 indique que ce n’est pas un tir de barrage mais bien un tir de pénalité (durant une des trois périodes ou durant la prolongation).</p>
+
+<h2 id="visualisations-simples">Visualisations simples</h2>
+
+<h3 id="question-1">Question 1</h3>
+
+<p>Graphique qui compare les types de tirs de toutes les équipes dans une saison et discussion.</p>
+
+<h4 id="a">a)</h4>
+
+<p>Un graphique qui montre la relation entre la distance à laquelle un tir est fait et la chance qu’il soit un but. Ce graphique est pour toutes les saisons entre 2018-19 et 2020-21. Discussion.</p>
+
+<h3 id="question-2">Question 2</h3>
+
+<p>Combiner les deux graphiques ci-dessus en un nouveau graphique et discussion.</p>
+
+<h2 id="visualisations-avancées">Visualisations avancées</h2>
+
+<h3 id="question-1-1">Question 1</h3>
+
+<p>4 graphiques de zone offensive qui permettent de sélectionner n’importe quelle équipe pour la saison.</p>
+
+<h3 id="question-2-1">Question 2</h3>
+
+<p>Discussion</p>
+
+<h3 id="question-3">Question 3</h3>
+
+<p>Discussion par rapport à l’écolution de l’Avalanche du Colorado.</p>
+
+<h3 id="question-4">Question 4</h3>
+
+<p>Discussion par rapport aux Sabres de Buffalo et au Lightning de Tampa Bay.</p>
+
+<h1 id="dont-mind-anything-after-this-line-we-can-remove-everything-easily-but-it-contains-important-information-so-lets-keep-it-for-now">Don’t mind anything after this line. We can remove everything easily, but it contains important information so let’s keep it for now.</h1>
 
 </div>
 
