@@ -1,0 +1,13 @@
+pre {
+    max-height: 400px;
+    overflow: auto;
+}
+iframe {
+    border: 0;
+    width: 100%;
+    height: 400px;
+}
+iframe.interactive-figure {
+    height: 490px;
+    overflow: hidden;
+}
