@@ -1,4 +1,4 @@
-# IFT6758 Blog for NHL goal prediction engine
+# Blog for NHL Goal Prediction Engine - Data Science project (IFT6758)
 
 This blog shows the results and answers of team A01/A05 for the two first milestones of the project. It can be hosted locally by following the steps provided in this README.md file. The code for these milestones can be found at the following [repository](https://github.com/izouiny/project_a05). The third milestone is not covered in this blog and it consists of a web application to use our different models for goal prediction on live games. It can be found at the following [repository](https://github.com/PhilSchoeb/docker-project).
 
